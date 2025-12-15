@@ -2,12 +2,10 @@
 
 #   Verify that first HDU is Primary or Random
 #   Verify that first HDU has EXTEND keyword set
-#
-
 
 """
-    fits(io::IO; <keywords>)
-    fits(filename::AbstractString; <keywords>)
+	fits(io::IO; <keywords>)
+	fits(filename::AbstractString; <keywords>)
 
 Open and read a FITS file, returning a vector of header-data units (HDUs).
 
@@ -19,18 +17,18 @@ The default data stucture for Random and Bintable HDUs is a named tuple of array
 - `scale::Bool=true`: apply the scale and zero keywords to the data
 """
 function fits(io::IO; kwds...)
-    hdus = HDU{<:AbstractHDU}[]
-    while !eof(io)
-        push!(hdus, read(io, HDU; kwds...))
-    end
-    hdus
+	hdus = HDU{<:AbstractHDU}[]
+	while !eof(io)
+		push!(hdus, read(io, HDU; kwds...))
+	end
+	hdus
 end
 
 function fits(file::AbstractString; kwds...)
-    io = open(file)
-    hdus = fits(io; kwds...)
-    close(io)
-    hdus
+	io = open(file)
+	hdus = fits(io; kwds...)
+	close(io)
+	hdus
 end
 
 """
@@ -52,40 +50,78 @@ function Base.write(file::AbstractString, hdus::Vector{HDU})
 end
 
 """
-    info(hdus::Vector{HDU})
+	info(hdus::Vector{HDU})
 
 Briefly describe the list of header-data units (HDUs).
 """
 function info(hdus::Vector{HDU})
-    for hdu in hdus
-        info(hdu)
-    end
+	for hdu in hdus
+		info(hdu)
+	end
 end
 
+####    Dictionary-like key function for HDUs
+
 function Base.haskey(hdus::Vector{HDU}, key::Type{<:AbstractHDU})
-    for hdu in hdus
-        if typeofhdu(hdu) == key
-            return true
-        end
-    end
-    false
+	for hdu in hdus
+		if typeofhdu(hdu) == key
+			return true
+		end
+	end
+	false
 end
 
 function Base.getindex(hdus::Vector{HDU}, key::Type{<:AbstractHDU})
-    for hdu in hdus
-        if typeofhdu(hdu) == key
-            return hdu
-        end
-    end
-    throw(KeyError(key))
+	for hdu in hdus
+		if typeofhdu(hdu) == key
+			return hdu
+		end
+	end
+	throw(KeyError(key))
 end
 
 function Base.getindex(hdus::Vector{HDU}, key::AbstractString)
-    for hdu in hdus
-        if haskey(hdu.cards, "EXTNAME") &&
-            rstrip(hdu.cards["EXTNAME"]) == rstrip(key)
-            return hdu
-        end
-    end
-    throw(KeyError(key))
+	for hdu in hdus
+		if haskey(hdu.cards, "EXTNAME") &&
+			uppercase(rstrip(hdu.cards["EXTNAME"])) == uppercase(key)
+			return hdu
+		end
+	end
+	throw(KeyError(key))
+end
+
+function Base.get(hdus::Vector{HDU}, key::AbstractString, default = missing)
+	value = default
+	for hdu in hdus
+		if haskey(hdu.cards, "EXTNAME") &&
+			uppercase(rstrip(hdu.cards["EXTNAME"])) == uppercase(key)
+			value = hdu
+			break
+		end
+	end
+	value
+end
+
+function Base.get(hdus::Vector{HDU}, keys::Union{AbstractArray, Tuple},
+	defaults::Union{AbstractArray, Tuple})
+
+	values = Any[defaults...]
+	for (j, key) in enumerate(keys)
+		for hdu in hdus
+			if haskey(hdu.cards, "EXTNAME") &&
+				uppercase(rstrip(hdu.cards["EXTNAME"])) == uppercase(key)
+				values[j] = hdu
+			end
+		end
+	end
+	values
+end
+
+function Base.findfirst(key::AbstractString, hdus::Vector{HDU})
+	for (j, hdu) in enumerate(hdus)
+		if uppercase(rstrip(hdu.cards[key])) == uppercase(key)
+			return j
+		end
+	end
+	nothing
 end

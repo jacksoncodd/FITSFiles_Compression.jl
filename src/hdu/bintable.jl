@@ -7,30 +7,54 @@ const BINARYTYPE = Dict(
     #  character to type
     "L" => Bool, "X" => BitVector, "B" => UInt8, "I" => Int16, "J" => Int32,
     "K" => Int64, "A" => String, "E" => Float32, "D" => Float64,
-    "C" => ComplexF32, "M" => ComplexF64, "P" => UInt32, "Q" => UInt64,
+    "C" => ComplexF32, "M" => ComplexF64,
     #  type to character
     Bool => "L", BitVector => "X", UInt8 => "B", Int16 => "I", Int32 => "J",
     Int64 => "K", String => "A", Float32 => "E", Float64 => "D",
-    ComplexF32 => "C", ComplexF64 => "M", UInt32 => "P", UInt64 => "Q")
+    ComplexF32 => "C", ComplexF64 => "M")
 
+const POINTERTYPE = Dict("P" => Int32, "Q" => Int64, Int32 => "P", Int64 => "Q")
+
+"""
+    BinaryField(name, pntr, type, slice, leng, supp, unit, disp, dims,
+        zero, scale, null, dmin, dmax, lmin, lmax)
+
+Binary array element descriptor
+"""
 struct BinaryField <: AbstractField
-    name::String                       #  Name of field
-    pntr::Union{Type, Nothing}         #  Type of variable array pointer
-    type::Type                         #  Type of field
-    slice::UnitRange{Int64}            #  Byte slice of field
-    leng::Int64                        #  Number of field elements
-    supp::String                       #  Supplemental field information
+    "The name of the field"
+    name::String
+    "The type of variable array pointer "
+    pntr::Union{Type, Nothing}
+    "The tye of the field"
+    type::Type
+    "The slice of the field from start of record"
+    slice::UnitRange{Int64}
+    "The number of elements in the field"
+    leng::Int64
+    "The supplmental information of the field"
+    supp::String
     #  optional fields
-    unit::String                       #  Unit of field
-    disp::String                       #  Display format of field
-    dims::Union{Tuple, Nothing}        #  Dimensions of field array
-    zero::Union{Real, Nothing}         #  Reference value of field elements
-    scale::Union{Real, Nothing}        #  Scaling value of field elements
-    null::Union{Int64, Nothing}        #  Missing value of field
-    dmin::Union{Real, Nothing}         #  Minimum value of field
-    dmax::Union{Real, Nothing}         #  Maximum value of field
-    lmin::Union{Real, Nothing}         #  Minimum physical value of field
-    lmax::Union{Real, Nothing}         #  Maximum physical value of field
+    "The unit of the field"
+    unit::String
+    "The display format of the field"
+    disp::String
+    "The dimension of the field"
+    dims::Union{Tuple, Nothing}
+    "The offset of the field"
+    zero::Union{Real, Nothing}
+    "The scale of the field"
+    scale::Union{Real, Nothing}
+    "The missing value of the field"
+    null::Union{Int64, Nothing}
+    "The minimum raw value of the field"
+    dmin::Union{Real, Nothing}
+    "The maximum raw value of the field"
+    dmax::Union{Real, Nothing}
+    "The minimum physical value of the field"
+    lmin::Union{Real, Nothing}
+    "The maximum physical value of the field"
+    lmax::Union{Real, Nothing}
 end
 
 function Base.read(io::IO, ::Type{Bintable}, format::DataFormat,
@@ -39,24 +63,20 @@ function Base.read(io::IO, ::Type{Bintable}, format::DataFormat,
     begpos = position(io)
     M, N, P = format.shape[1], format.shape[2], format.param
     #  Read data array
-    if N > 0
-        if record
-            #  Read data table
-            data = [(; [read(io, field; kwds...) for field in fields]...)
-                for j = 1:N]
-        else
-            data = (; [Symbol(field.name) =>
-                read(io, field, format, begpos; kwds...) for field in fields]... )
-        end
-        #  Seek to the beginning of the heap
-        seek(io, begpos + (format.param > 0 ? format.heap : M*N))
-        #  Read the heap
-        ntoh.(read(io, P))
-        #  Seek to the end of block
-        seek(io, begpos + BLOCKLEN*div(M*N + P, BLOCKLEN, RoundUp))
+    if record
+        #  Read data table
+        data = [(; [read(io, field; kwds...) for field in fields]...)
+            for j = 1:N]
     else
-        data = nothing
+        data = (; [Symbol(field.name) =>
+            read(io, field, format, begpos; kwds...) for field in fields]... )
     end
+    #  Seek to the beginning of the heap
+    seek(io, begpos + (P > 0 ? format.heap : M*N))
+    #  Read the heap
+    ntoh.(read(io, P))
+    #  Seek to the end of block
+    # seek(io, begpos + BLOCKLEN*div(M*N + P, BLOCKLEN, RoundUp))
 
     ####    Get WCS keywords
     data
@@ -101,13 +121,14 @@ function Base.write(io::IO, ::Type{Bintable}, data::NamedTuple, format::DataForm
 end
 
 function verify!(::Type{Bintable}, cards::Cards, format::DataFormat,
-    mankeys::D) where D<:Dict{AbstractString, ValueType}
+    mankeys::D) where D <: Dict{AbstractString, ValueType}
 
     if haskey(mankeys, "BITPIX") && format.type != BITS2TYPE[mankeys["BITPIX"]]
         setindex!(cards, TYPE2BITS[format.type], "BITPIX")
         println("Warning: BITPIX set to $(TYPE2BITS[format.type])).")
     end
     if haskey(mankeys, "NAXIS1") && format.shape != datasize(cards, 1)
+        println("$(format.shape), $(datasize(cards, 1))")
         N = length(format.shape)
         setindex!(cards, N, "NAXIS")
         for j=1:N setindex!(cards, format.shape[j], "NAXIS$j") end
@@ -124,8 +145,8 @@ function verify!(::Type{Bintable}, cards::Cards, format::DataFormat,
     cards
 end
 
-function DataFormat(::Type{Bintable}, data::Nothing, mankeys::Dict{S, V}) where
-    {S<:AbstractString, V<:ValueType}
+function DataFormat(::Type{Bintable}, data::Missing, mankeys::Dict{S, V}) where
+    {S <: AbstractString, V <: ValueType}
 
     #  Mandatory keys determines HDU type.
     type  = BITS2TYPE[get(mankeys, "BITPIX", 8)]
@@ -138,7 +159,7 @@ function DataFormat(::Type{Bintable}, data::Nothing, mankeys::Dict{S, V}) where
 end
 
 function FieldFormat(::Type{Bintable}, mankeys::DataFormat, reskeys::Dict{S, V},
-    data::Nothing; record=false, kwds...) where {S<:AbstractString, V<:ValueType}
+    data::Missing; record=false, kwds...) where {S <: AbstractString, V <: ValueType}
 
     #   Add support TTYPEn and TUNITn in data arrays
     N = get(reskeys, "TFIELDS", 0)
@@ -146,7 +167,7 @@ function FieldFormat(::Type{Bintable}, mankeys::DataFormat, reskeys::Dict{S, V},
     for j = 1:N
         name  = rstrip(get(reskeys, "TTYPE$j", record ? "field$j" : "column$j"))
         form  = match(BINARYFMT, reskeys["TFORM$j"])
-        pntr  = !isempty(form[:p]) ? BINARYTYPE[form[:p]] : nothing
+        pntr  = !isempty(form[:p]) ? POINTERTYPE[form[:p]] : nothing
         type  = BINARYTYPE[form[:t]]
         leng  = !isempty(form[:r]) ? Base.parse(Int64, form[:r]) : 1
         if !isnothing(pntr)
@@ -156,7 +177,7 @@ function FieldFormat(::Type{Bintable}, mankeys::DataFormat, reskeys::Dict{S, V},
             end
             byts = 2*sizeof(pntr)
         elseif type <: BitVector
-            byts = (leng-1)÷8+1
+            byts = sizeofbitvector(leng)
         elseif type <: AbstractString
             byts = leng
         else
@@ -171,10 +192,10 @@ function FieldFormat(::Type{Bintable}, mankeys::DataFormat, reskeys::Dict{S, V},
         scale = get(reskeys, "TSCAL$j", type <: Union{Bool, BitVector, String} ?
             nothing : type(1))
         null  = get(reskeys, "TNULL$j", nothing)
-        dmin  = get(reskeys, "TDMIN$j", nothing)
-        dmax  = get(reskeys, "TDMAX$j", nothing)
-        lmin  = get(reskeys, "TLMIN$j", nothing)
-        lmax  = get(reskeys, "TLMAX$j", nothing)
+        dmin  = parse_string(get(reskeys, "TDMIN$j", nothing))
+        dmax  = parse_string(get(reskeys, "TDMAX$j", nothing))
+        lmin  = parse_string(get(reskeys, "TLMIN$j", nothing))
+        lmax  = parse_string(get(reskeys, "TLMAX$j", nothing))
 
         fields[j] = BinaryField(name, pntr, type, k+1:k+byts, leng, supp,
             unit_, disp, dims, zero_, scale, null, dmin, dmax, lmin, lmax)
@@ -184,11 +205,11 @@ function FieldFormat(::Type{Bintable}, mankeys::DataFormat, reskeys::Dict{S, V},
 end
 
 function DataFormat(::Type{Bintable}, data::AbstractArray,
-    mankeys::Dict{S, V}) where {S<:AbstractString, V<:ValueType}
+    mankeys::Dict{S, V}) where {S <: AbstractString, V <: ValueType}
 
     #  Determine format from data
     type  = BITS2TYPE[8]
-    shape = (recordlength(data[1]), length(data))
+    shape = (recordlength(data), length(data))
     leng  = prod(shape)
     param = 0
     group = 1
@@ -197,7 +218,7 @@ function DataFormat(::Type{Bintable}, data::AbstractArray,
 end
 
 function FieldFormat(::Type{Bintable}, mankey::DataFormat, reskeys::Dict{S, V},
-    data::AbstractArray; kwds...) where {S<:AbstractString, V<:ValueType}
+    data::AbstractArray; kwds...) where {S <: AbstractString, V <: ValueType}
 
     #   Add support TTYPEn and TUNITn in data arrays
     N = length(data[1])
@@ -231,10 +252,9 @@ function FieldFormat(::Type{Bintable}, mankey::DataFormat, reskeys::Dict{S, V},
 end
 
 function DataFormat(::Type{Bintable}, data::U, mankeys::Dict{S, V}) where
-    {U<:Union{Tuple, NamedTuple}, S<:AbstractString, V<:ValueType}
+    {U <: Union{Tuple, NamedTuple}, S <: AbstractString, V <: ValueType}
 
-    reclen = sum([eltype(f) <: BitVector ? sizeof(f[1])÷8 : sizeof(f[1])
-        for f in data])
+    reclen = recordlength(data)
     #  Determine format from data
     type  = BITS2TYPE[8]
     shape = (reclen, length(data[1]))
@@ -246,8 +266,8 @@ function DataFormat(::Type{Bintable}, data::U, mankeys::Dict{S, V}) where
 end
 
 function FieldFormat(::Type{Bintable}, mankey::DataFormat, reskeys::Dict{S, V},
-    data::U; kwds...) where {U<:Union{Tuple, NamedTuple},
-    S<:AbstractString, V<:ValueType}
+    data::U; kwds...) where {U <: Union{Tuple, NamedTuple},
+    S <: AbstractString, V <: ValueType}
 
     #   Add support TTYPEn and TUNITn in data arrays
     N = length(data)
@@ -280,13 +300,26 @@ function FieldFormat(::Type{Bintable}, mankey::DataFormat, reskeys::Dict{S, V},
     fields
 end
 
+function recordlength(data::AbstractArray)
+	sum([typeof(f) <: BitVector ? sizeofbitvector(f) : sizeof(f)
+		for f in data[1]])
+end
+
+function recordlength(data::U) where U <: Union{Tuple, NamedTuple}
+	sum([typeof(f[1]) <: BitVector ? sizeofbitvector(f[1]) : sizeof(f[1])
+		for f in data])
+end
+
+sizeofbitvector(v::BitVector)::Integer = (length(v)-1)÷8 + 1
+sizeofbitvector(len::Integer)::Integer = (len-1)÷8 + 1
+
 function field_descriptor(field)
     if typeof(field) <: AbstractString
         type, leng = String, length(field)
         byts = leng
     elseif typeof(field) <: BitVector
         type, leng = BitVector, length(field)
-        byts = (leng-1)÷8+1
+        byts = sizeofbitvector(leng)
     elseif typeof(field) <: AbstractArray
         type, leng = eltype(field), length(field)
         byts = leng*sizeof(type)
@@ -343,7 +376,7 @@ function create_data(::Type{Bintable}, format::DataFormat,
                     for f in fields]...)
         end
     else
-        data = nothing
+        data = missing
     end
 end
 
@@ -379,12 +412,11 @@ function Base.read(io::IO, field::BinaryField, format::DataFormat, begpos::Integ
     L, M, N = format.shape[1], first(field.slice)-1, format.shape[2]
     #  Read data array
     if !isnothing(field.pntr)
-        pntr = field.pntr
         column = Array{Vector{type}}(undef, N)
         for j = 1:N
             seek(io, begpos + L*(j-1) + M)
-            K   = ntoh(read(io, pntr))
-            beg = ntoh(read(io, pntr))
+            K   = ntoh(read(io, field.pntr))
+            beg = ntoh(read(io, field.pntr))
             seek(io, begpos + format.heap + beg)
             col = ntoh.([read(io, type) for k = 1:K])
             column[j] = scale ? field.zero .+ field.scale.*col : col
@@ -451,7 +483,7 @@ function Base.read(io::IO, field::BinaryField; scale=true)
 end
 
 function Base.write(io::IO, field::BinaryField, value::U; kwds...) where
-    U<:Union{AbstractArray, AbstractString, BitVector, Real, Complex}
+    U <: Union{AbstractArray, AbstractString, BitVector, Real, Complex}
 
     type, leng = field.type, field.leng
 
@@ -472,7 +504,7 @@ function Base.read(io::IO, ::Type{BitVector}, len)
     #  Read the bytes from IO and convert the UInt8s to a Bitvector
     bv  = falses(len)
     if len > 0
-        siz = (len-1)÷8 + 1
+        siz = sizeofbitvector(len)
         vec = [read(io, UInt8) for j=1:siz]
         unsafe_copyto!(reinterpret(Ptr{UInt8}, pointer(bv.chunks)), pointer(vec), siz)
     end
@@ -481,7 +513,7 @@ end
 
 function Base.write(io::IO, ::Type{BitVector}, value)
     #  Convert the BitVector to UInt8s and write the bytes to IO
-    siz = (length(value)-1)÷8 + 1
+    siz = sizeofbitvector(value)
     vec = zeros(UInt8, siz)
     unsafe_copyto!(pointer(vec), reinterpret(Ptr{UInt8}, pointer(value.chunks)), siz)
     write(io, vec)

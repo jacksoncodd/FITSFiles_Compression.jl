@@ -19,7 +19,7 @@
                    ("GCOUNT", 0, "",
                     "GCOUNT  =                    0                                                  ")])
 
-    @test isnothing(hdu.data)
+    @test ismissing(hdu.data)
 
     #  test Random type with data being an array of tuples
     data = [
@@ -601,5 +601,104 @@
     @test (length(data[1]) == 4 && ndims(hdu.data[:data]) == 4 &&
            size(hdu.data[:data]) == (3, 2, 3, 4) && eltype(hdu.data[:data]) == Float32 &&
            all(hdu.data[:PARAM1] .== [1f0, 2f0, 3f0]))
+
+    #  test Random type with data being array of records, record == false, and lazy array
+    data = [
+       (par1=1.0f0, par2=1.0f0, par3=1.0f0,
+        data=Float32[1 1 1; 2 2 2;;; 3 3 3; 4 4 4;;; 5 5 5; 6 6 6;;; 7 7 7; 8 8 8]),
+       (par1=2.0f0, par2=2.0f0, par3=2.0f0,
+        data=Float32[2 2 2; 3 3 3;;; 4 4 4; 5 5 5;;; 6 6 6; 7 7 7;;; 8 8 8; 9 9 9]),
+       (par1=3.0f0, par2=3.0f0, par3=3.0f0,
+        data=Float32[3 3 3; 4 4 4;;; 5 5 5; 6 6 6;;; 7 7 7; 8 8 8;;; 9 9 9; 10 10 10])]
+    temppath = joinpath(tempdir(), "random_hdu.fits")
+    fileio = open(temppath, "w+")
+    write(fileio, HDU(Random, data))
+    close(fileio)
+    fileio = open(temppath)
+    hdu = read(fileio, HDU; type=Random, record=false)
+    close(fileio)
+
+    @test isequal(showfields.(hdu.cards),
+                  [("SIMPLE", true, "",
+                    "SIMPLE  =                    T                                                  "),
+                   ("BITPIX", -32, "",
+                    "BITPIX  =                  -32                                                  "),
+                   ("NAXIS", 4, "",
+                    "NAXIS   =                    4                                                  "),
+                   ("NAXIS1", 0, "",
+                    "NAXIS1  =                    0                                                  "),
+                   ("NAXIS2", 2, "",
+                    "NAXIS2  =                    2                                                  "),
+                   ("NAXIS3", 3, "",
+                    "NAXIS3  =                    3                                                  "),
+                   ("NAXIS4", 4, "",
+                    "NAXIS4  =                    4                                                  "),
+                   ("GROUPS", true, "",
+                    "GROUPS  =                    T                                                  "),
+                   ("PCOUNT", 3, "",
+                    "PCOUNT  =                    3                                                  "),
+                   ("GCOUNT", 3, "",
+                    "GCOUNT  =                    3                                                  "),
+                   ("PTYPE1", "par1", "",
+                    "PTYPE1  = 'par1'                                                                "),
+                   ("PTYPE2", "par2", "",
+                    "PTYPE2  = 'par2'                                                                "),
+                   ("PTYPE3", "par3", "",
+                    "PTYPE3  = 'par3'                                                                ")])
+
+    @test (length(hdu.data) == 4 && ndims(hdu.data[:data]) == 4 &&
+           size(hdu.data[:data]) == (3, 2, 3, 4) && eltype(hdu.data[:data]) == Float32)
+
+    rm(temppath)
+
+    #  test Random type with data being array of records, record = true, and lazy array
+    data = [
+       (par1=1.0f0, par2=1.0f0, par3=1.0f0,
+        data=Float32[1 1 1; 2 2 2;;; 3 3 3; 4 4 4;;; 5 5 5; 6 6 6;;; 7 7 7; 8 8 8]),
+       (par1=2.0f0, par2=2.0f0, par3=2.0f0,
+        data=Float32[2 2 2; 3 3 3;;; 4 4 4; 5 5 5;;; 6 6 6; 7 7 7;;; 8 8 8; 9 9 9]),
+       (par1=3.0f0, par2=3.0f0, par3=3.0f0,
+        data=Float32[3 3 3; 4 4 4;;; 5 5 5; 6 6 6;;; 7 7 7; 8 8 8;;; 9 9 9; 10 10 10])]
+
+    temppath = joinpath(tempdir(), "random_hdu.fits")
+    fileio = open(temppath, "w+")
+    write(fileio, HDU(Random, data))
+    close(fileio)
+    fileio = open(temppath)
+    hdu = read(fileio, HDU; type=Random, record=true)
+    close(fileio)
+
+    @test isequal(showfields.(hdu.cards),
+                  [("SIMPLE", true, "",
+                    "SIMPLE  =                    T                                                  "),
+                   ("BITPIX", -32, "",
+                    "BITPIX  =                  -32                                                  "),
+                   ("NAXIS", 4, "",
+                    "NAXIS   =                    4                                                  "),
+                   ("NAXIS1", 0, "",
+                    "NAXIS1  =                    0                                                  "),
+                   ("NAXIS2", 2, "",
+                    "NAXIS2  =                    2                                                  "),
+                   ("NAXIS3", 3, "",
+                    "NAXIS3  =                    3                                                  "),
+                   ("NAXIS4", 4, "",
+                    "NAXIS4  =                    4                                                  "),
+                   ("GROUPS", true, "",
+                    "GROUPS  =                    T                                                  "),
+                   ("PCOUNT", 3, "",
+                    "PCOUNT  =                    3                                                  "),
+                   ("GCOUNT", 3, "",
+                    "GCOUNT  =                    3                                                  "),
+                   ("PTYPE1", "par1", "",
+                    "PTYPE1  = 'par1'                                                                "),
+                   ("PTYPE2", "par2", "",
+                    "PTYPE2  = 'par2'                                                                "),
+                   ("PTYPE3", "par3", "",
+                    "PTYPE3  = 'par3'                                                                ")])
+
+    @test ((length(data[1])-1) == 3 && ndims(hdu.data[1][:data]) == 3 &&
+           size(hdu.data[1][:data]) == (2, 3, 4) && eltype(hdu.data[1][:data]) == Float32)
+
+    rm(temppath)
 
 end

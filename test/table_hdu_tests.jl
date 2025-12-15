@@ -21,7 +21,7 @@
                    ("TFIELDS", 0, "",
                     "TFIELDS =                    0                                                  ")])
 
-    @test isnothing(hdu.data)
+    @test ismissing(hdu.data)
 
     #  test Table type with cards
     cards = [Card("XTENSION", "TABLE"),
