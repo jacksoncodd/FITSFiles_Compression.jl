@@ -21,7 +21,7 @@ struct ImageField{R} <: AbstractField where R <: Real
 end
 
 function Base.read(io::IO, ::Type{Primary}, format::DataFormat,
-    fields::ImageField; scale=true, kwds...)
+    fields::ImageField; scale::Bool = true, kwds...)
 
     #  Read data array
     M, N = sizeof(format.type), format.leng

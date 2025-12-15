@@ -1,7 +1,7 @@
 ####    Image HDU functions
 
 function Base.read(io::IO, ::Type{Image}, format::DataFormat,
-    fields::ImageField; scale=true, kwds...)
+    fields::ImageField; scale::Bool = true, kwds...)
 
     begpos = position(io)
     #  Read data array

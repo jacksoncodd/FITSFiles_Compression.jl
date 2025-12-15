@@ -58,7 +58,7 @@ struct BinaryField <: AbstractField
 end
 
 function Base.read(io::IO, ::Type{Bintable}, format::DataFormat,
-    fields::Vector{BinaryField}; record=false, kwds...)
+    fields::Vector{BinaryField}; record::Bool = false, kwds...)
 
     begpos = position(io)
     M, N, P = format.shape[1], format.shape[2], format.param
@@ -159,7 +159,8 @@ function DataFormat(::Type{Bintable}, data::Missing, mankeys::Dict{S, V}) where
 end
 
 function FieldFormat(::Type{Bintable}, mankeys::DataFormat, reskeys::Dict{S, V},
-    data::Missing; record=false, kwds...) where {S <: AbstractString, V <: ValueType}
+    data::Missing; record::Bool = false, kwds...) where
+    {S <: AbstractString, V <: ValueType}
 
     #   Add support TTYPEn and TUNITn in data arrays
     N = get(reskeys, "TFIELDS", 0)
@@ -365,7 +366,7 @@ function create_cards!(::Type{Bintable}, format::DataFormat,
 end
 
 function create_data(::Type{Bintable}, format::DataFormat,
-    fields::Vector{BinaryField}; record=false, kwds...)
+    fields::Vector{BinaryField}; record::Bool = false, kwds...)
     #  Create vector of tuples.
     if format.leng > 0
         if record
@@ -404,8 +405,8 @@ function bintab_zeros(f, n)
     end
 end
 
-function Base.read(io::IO, field::BinaryField, format::DataFormat, begpos::Integer;
-    scale=true)
+function Base.read(io::IO, field::BinaryField, format::DataFormat,
+    begpos::Integer; scale::Bool = true)
 
     type, leng = field.type, field.leng
 
@@ -457,7 +458,7 @@ function Base.read(io::IO, field::BinaryField, format::DataFormat, begpos::Integ
     column
 end
 
-function Base.read(io::IO, field::BinaryField; scale=true)
+function Base.read(io::IO, field::BinaryField; scale::Bool = true)
 
     name, type, leng = field.name, field.type, field.leng
 

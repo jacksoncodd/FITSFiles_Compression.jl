@@ -9,7 +9,7 @@ struct ConformField <: AbstractField
 end
 
 function Base.read(io::IO, ::Type{Conform}, format::DataFormat,
-    fields=ConformField; scale=true, kwds...)
+    fields=ConformField; scale::Bool = true, kwds...)
 
     begpos = position(io)
     #  Read data array

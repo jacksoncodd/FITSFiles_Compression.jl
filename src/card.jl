@@ -231,7 +231,7 @@ end
 function Card(key::S = "", value::V = missing, comment::S = ""; fixed::B = true,
 	append::B = false, slash::I = 32, lpad::I = 1, rpad::I = 1, upad::I = 1,
 	truncate::B = true) where
-{B <: Bool, I <: Integer, S <: AbstractString, V <: ValueType}
+	{B <: Bool, I <: Integer, S <: AbstractString, V <: ValueType}
 
 	#  Convert key to uppercase and remove trailing spaces.
 	upkey = uppercase(strip(key))

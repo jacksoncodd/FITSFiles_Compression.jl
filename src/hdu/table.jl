@@ -42,7 +42,7 @@ struct TableField <: AbstractField
 end
 
 function Base.read(io::IO, type::Type{Table}, format::DataFormat,
-    fields::Vector{TableField}; record=false, kwds...)
+    fields::Vector{TableField}; record::Bool = false, kwds...)
 
     begpos = position(io)
     M, N = format.shape[1], format.shape[2]
@@ -128,7 +128,7 @@ function DataFormat(::Type{Table}, data::Missing, mankeys::Dict{S, V}) where
 end
 
 function FieldFormat(::Type{Table}, format::DataFormat, reskeys::Dict{S, V},
-    data::Missing; record=false, kwds...) where {S<:AbstractString, V<:ValueType}
+    data::Missing; record::Bool = false, kwds...) where {S<:AbstractString, V<:ValueType}
 
     N = get(reskeys, "TFIELDS", 0)
 
@@ -292,8 +292,8 @@ function create_data(::Type{Table}, format::DataFormat,
     end
 end
 
-function Base.read(io::IO, field::TableField, format::DataFormat, begpos::Integer;
-    scale=true)
+function Base.read(io::IO, field::TableField, format::DataFormat,
+    begpos::Integer; scale::Bool = true)
 
     type, leng = field.type, length(field.slice)
     L, M, N = format.shape[1], first(field.slice)-1, format.shape[2]
@@ -321,7 +321,8 @@ function Base.read(io::IO, field::TableField, format::DataFormat, begpos::Intege
     column
 end
 
-function Base.read(row::AbstractString, field::TableField; scale=true, invalid=true)
+function Base.read(row::AbstractString, field::TableField; scale::Bool = true,
+    invalid::Bool = true)
 
     type, leng = field.type, length(field.slice)
     item = row[field.slice]
