@@ -21,7 +21,7 @@
                    ("TFIELDS", 0, "",
                     "TFIELDS =                    0                                                  ")])
 
-    @test isnothing(hdu.data)
+    @test ismissing(hdu.data)
 
 
     #  test Bintable type with data being a tuple of arrays
@@ -845,5 +845,80 @@
 
     @test (length(hdu.data) == 5 && length(hdu.data[:par1]) == 3 &&
         all(hdu.data[:par4] .== [1.0, 2.0, 3.0]))
+
+    #  test Bintable type with data being an array of records, record == true, and lazy array
+    data = [
+       (par1=1, par2=BitVector([1, 0, 0]), par3=1.0f0, par4=1.0, par5="1.0"),
+       (par1=2, par2=BitVector([0, 1, 0]), par3=2.0f0, par4=2.0, par5="2.0"),
+       (par1=3, par2=BitVector([1, 1, 0]), par3=3.0f0, par4=3.0, par5="3.0")]
+    cards = [Card("XTENSION", "BINTABLE"),
+             Card("BITPIX", 8),
+             Card("NAXIS", 2),
+             Card("NAXIS1", 24),
+             Card("NAXIS2", 3),
+             Card("PCOUNT", 0),
+             Card("GCOUNT", 1),
+             Card("TFIELDS", 5),
+             Card("TFORM1", "1K"),
+             Card("TTYPE1", "par1"),
+             Card("TFORM2", "3X"),
+             Card("TTYPE2", "par2"),
+             Card("TFORM3", "1E"),
+             Card("TTYPE3", "par3"),
+             Card("TFORM4", "1D"),
+             Card("TTYPE4", "par4"),
+             Card("TFORM5", "3A"),
+             Card("TTYPE5", "par5")]
+
+    temppath = joinpath(tempdir(), "bintable_hdu.fits")
+    fileio = open(temppath, "w+")
+    write(fileio, HDU(data, cards))
+    close(fileio)
+    fileio = open(temppath)
+    hdu = read(fileio, HDU; type=Bintable, record=true, scale=true)
+    close(fileio)
+
+    @test isequal(showfields.(hdu.cards),
+                  [("XTENSION", "BINTABLE", "",
+                    "XTENSION= 'BINTABLE'                                                            "),
+                   ("BITPIX", 8, "",
+                    "BITPIX  =                    8                                                  "),
+                   ("NAXIS", 2, "",
+                    "NAXIS   =                    2                                                  "),
+                   ("NAXIS1", 24, "",
+                    "NAXIS1  =                   24                                                  "),
+                   ("NAXIS2", 3, "",
+                    "NAXIS2  =                    3                                                  "),
+                   ("PCOUNT", 0, "",
+                    "PCOUNT  =                    0                                                  "),
+                   ("GCOUNT", 1, "",
+                    "GCOUNT  =                    1                                                  "),
+                   ("TFIELDS", 5, "",
+                    "TFIELDS =                    5                                                  "),
+                   ("TFORM1", "1K", "",
+                    "TFORM1  = '1K'                                                                  "),
+                   ("TTYPE1", "par1", "",
+                    "TTYPE1  = 'par1'                                                                "),
+                   ("TFORM2", "3X", "",
+                    "TFORM2  = '3X'                                                                  "),
+                   ("TTYPE2", "par2", "",
+                    "TTYPE2  = 'par2'                                                                "),
+                   ("TFORM3", "1E", "",
+                    "TFORM3  = '1E'                                                                  "),
+                   ("TTYPE3", "par3", "",
+                    "TTYPE3  = 'par3'                                                                "),
+                   ("TFORM4", "1D", "",
+                    "TFORM4  = '1D'                                                                  "),
+                   ("TTYPE4", "par4", "",
+                    "TTYPE4  = 'par4'                                                                "),
+                   ("TFORM5", "3A", "",
+                    "TFORM5  = '3A'                                                                  "),
+                   ("TTYPE5", "par5", "",
+                    "TTYPE5  = 'par5'                                                                ")])
+
+    @test (length(hdu.data[1]) == 5 && length(hdu.data) == 3 &&
+        all([hdu.data[j][:par4] for j=1:3] .== [1.0, 2.0, 3.0]))
+
+    rm(temppath)
 
 end

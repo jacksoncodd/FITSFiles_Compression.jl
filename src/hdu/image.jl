@@ -1,31 +1,27 @@
 ####    Image HDU functions
 
 function Base.read(io::IO, ::Type{Image}, format::DataFormat,
-    fields::ImageField; scale=true, kwds...)
+    fields::ImageField; scale::Bool = true, kwds...)
 
     begpos = position(io)
     #  Read data array
     M, N = sizeof(format.type), format.leng
-    if N > 0
-        data = read(io, format, fields)
-        #  Seek to end of the last data block
-        seek(io, begpos + BLOCKLEN*div(M*N, BLOCKLEN, RoundUp))
+    data = read(io, format, fields)
+    #  Seek to end of the last data block
+    # seek(io, begpos + BLOCKLEN*div(M*N, BLOCKLEN, RoundUp))
 
-        data = scale ? fields.zero .+ fields.scale.*data : data
-        #=
-        if get(kwds, :unit, true)
-            apply_unit(data, cards)
-        end
-        =#
-    else
-        data = nothing
+    data = scale ? fields.zero .+ fields.scale.*data : data
+    #=
+    if get(kwds, :unit, true)
+        apply_unit(data, cards)
     end
+    =#
 
     ####    Get WCS keywords
     data
 end
 
-function Base.write(io::IO, ::Type{Image}, data::Nothing, format::DataFormat,
+function Base.write(io::IO, ::Type{Image}, data::Missing, format::DataFormat,
     fields::ImageField; kwds...)
 end
 
@@ -56,7 +52,7 @@ function verify!(::Type{Image}, cards::Cards, format::DataFormat,
     cards
 end
 
-function DataFormat(::Type{Image}, data::Nothing, mankeys::Dict{S, V}) where
+function DataFormat(::Type{Image}, data::Missing, mankeys::Dict{S, V}) where
     {S<:AbstractString, V<:ValueType}
 
     #  Determine format from data
@@ -70,7 +66,7 @@ function DataFormat(::Type{Image}, data::Nothing, mankeys::Dict{S, V}) where
 end
 
 function FieldFormat(::Type{Image}, format::DataFormat, reskeys::Dict{S, V},
-    data::Nothing) where {S<:AbstractString, V<:ValueType}
+    data::Missing) where {S<:AbstractString, V<:ValueType}
 
     #  Get missing value
     zero_ = get(reskeys, "BZERO", zero(format.type))
@@ -131,5 +127,5 @@ end
 
 function create_data(::Type{Image}, format::DataFormat, ::ImageField; kwds...)
     #  Create simple N-dimensional array of zeros of type BITPIX
-    length(format.shape) > 0 ? zeros(format.type, format.shape) : nothing
+    length(format.shape) > 0 ? zeros(format.type, format.shape) : missing
 end

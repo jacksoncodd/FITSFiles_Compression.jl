@@ -1,57 +1,58 @@
 ####    Random HDU functions
 
+"""
+    RandomField(name, index, type, slice, leng, shape, zero, scale)
+
+Random array element descriptor
+"""
 struct RandomField <: AbstractField
     "The name of the field"
     name::AbstractString
     "The index of the field for common name fields"
-    index::Integer
+    index::Int64
     "The type of the field"
     type::Type
     "The slice of the field bytes from start of record"
-    slice::UnitRange{Integer}
+    slice::UnitRange{Int64}
     "The number of elements in the field"
-    leng::Integer
+    leng::Int64
     "The dimensions of the field"
     shape::Tuple
     "The offset value of the field"
-    zero::Union{Real, Nothing}
+    zero::Union{Real, Missing}
     "The scale factor of the field"
-    scale::Union{Real, Nothing}
+    scale::Union{Real, Missing}
 end
 
 function Base.read(io::IO, ::Type{Random}, format::DataFormat,
-    fields::Vector{RandomField}; record=false, kwds...)
+    fields::Vector{RandomField}; record::Bool = false, kwds...)
 
     begpos = position(io)
     M, N = sizeof(format.type), format.leng
     #  Read data array
-    if N > 0
-        names = [field.name for field in fields]
-        ndxs = [name => findall(x -> x == name, names)
-            for name in unique(names)]
-        if record
-            #  Return data as a vector of records
-            #  Concatenate (horizontally) fields having the same name.
-            data = []
-            for j=1:format.group
-                flds = [read(io, field; kwds...) for field in fields]
-                push!(data, (; [Symbol(name) => length(ndx) > 1 ?
-                    hcat(flds[ndx]...) : flds[ndx...]
-                    for (name, ndx) in ndxs]... ) )
-            end
-        else
-            #  Return data as NamedTuple of arrays
-            #  Concatenate (horizontally) columns having the same name.
-            cols = [read(io, field, format, begpos; kwds...)
-                for field in fields]
-            data = (; [Symbol(name) => (length(ndx) > 1 ? hcat(cols[ndx]...) :
-                cols[ndx...]) for (name, ndx) in ndxs]...)
+    names = [field.name for field in fields]
+    ndxs = [name => findall(x -> x == name, names)
+        for name in unique(names)]
+    if record
+        #  Return data as a vector of records
+        #  Concatenate (horizontally) fields having the same name.
+        data = []
+        for j=1:format.group
+            flds = [read(io, field; kwds...) for field in fields]
+            push!(data, (; [Symbol(name) => length(ndx) > 1 ?
+                hcat(flds[ndx]...) : flds[ndx...]
+                for (name, ndx) in ndxs]... ) )
         end
-        #   Seek to end of the last data block
-        seek(io, begpos + BLOCKLEN*div(M*N, BLOCKLEN, RoundUp))
     else
-        data = nothing
+        #  Return data as NamedTuple of arrays
+        #  Concatenate (horizontally) columns having the same name.
+        cols = [read(io, field, format, begpos; kwds...)
+            for field in fields]
+        data = (; [Symbol(name) => (length(ndx) > 1 ? hcat(cols[ndx]...) :
+            cols[ndx...]) for (name, ndx) in ndxs]...)
     end
+    #   Seek to end of the last data block
+    # seek(io, begpos + BLOCKLEN*div(M*N, BLOCKLEN, RoundUp))
 
     ####    Get WCS keywords
     data
@@ -131,7 +132,7 @@ function verify!(::Type{Random}, cards::Cards, format::DataFormat,
     cards
 end
 
-function DataFormat(::Type{Random}, data::Nothing, mankeys::Dict{S, V}) where
+function DataFormat(::Type{Random}, data::Missing, mankeys::Dict{S, V}) where
     {S<:AbstractString, V<:ValueType}
 
     #  Mandatory keys determine HDU tyhpe
@@ -145,7 +146,8 @@ function DataFormat(::Type{Random}, data::Nothing, mankeys::Dict{S, V}) where
 end
 
 function FieldFormat(::Type{Random}, format::DataFormat, reskeys::Dict{S, V},
-    data::Nothing; record=false, kwds...) where {S<:AbstractString, V<:ValueType}
+    data::Missing; record::Bool = false, kwds...) where
+    {S<:AbstractString, V<:ValueType}
 
     type = format.type
     k, P, bytes = 0, format.param, sizeof(type)
@@ -228,7 +230,7 @@ function DataFormat(::Type{Random}, data::U, mankeys::Dict{S, V}) where
 end
 
 function FieldFormat(::Type{Random}, format::DataFormat, reskeys::Dict{S, V},
-    data::U; record=false) where {U<:Union{Tuple, NamedTuple},
+    data::U; record::Bool = false) where {U<:Union{Tuple, NamedTuple},
     S<:AbstractString, V<:ValueType}
 
     type, P, k, bytes = format.type, format.param, 0, sizeof(format.type)
@@ -288,7 +290,7 @@ function create_cards!(::Type{Random}, format::DataFormat,
 end
 
 function create_data(::Type{Random}, format::DataFormat,
-    fields::Vector{RandomField}; record=false, kwds...)
+    fields::Vector{RandomField}; record::Bool = false, kwds...)
     #  Create N-dimensional array of zeros of type BITPIX.
     if format.group > 0
         if record
@@ -301,13 +303,13 @@ function create_data(::Type{Random}, format::DataFormat,
                 zeros(f.type, format.group) for f in fields]...)
         end
     else
-        data = nothing
+        data = missing
     end
     data
 end
 
-function Base.read(io::IO, field::RandomField, format::DataFormat, begpos::Integer;
-    scale=true)
+function Base.read(io::IO, field::RandomField, format::DataFormat,
+    begpos::Integer; scale::Bool = true)
 
     L = sizeof(format.type)*(format.param + prod(format.shape))
     M, N = first(field.slice)-1, format.group
@@ -331,7 +333,7 @@ function Base.read(io::IO, field::RandomField, format::DataFormat, begpos::Integ
     scale ? field.zero .+ field.scale.*column : column
 end
 
-function Base.read(io::IO, field::RandomField; scale=true)
+function Base.read(io::IO, field::RandomField; scale::Bool = true)
 
     name, type, leng, shape = field.name, field.type, field.leng, field.shape
     if leng == 1

@@ -1,27 +1,28 @@
 ####    Conforming HDU functions
 
+"""
+    ConformField()
+    
+Conforming array element descriptor
+"""
 struct ConformField <: AbstractField
 end
 
 function Base.read(io::IO, ::Type{Conform}, format::DataFormat,
-    fields=ConformField; scale=true, kwds...)
+    fields=ConformField; scale::Bool = true, kwds...)
 
     begpos = position(io)
     #  Read data array
-    if format.leng > 0
-        data = read(io, format, fields)
-        #  Seek to end of the last data block
-        seek(io, begpos + BLOCKLEN*div(format.leng, BLOCKLEN, RoundUp))
+    data = read(io, format, fields)
+    #  Seek to end of the last data block
+    # seek(io, begpos + BLOCKLEN*div(format.leng, BLOCKLEN, RoundUp))
 
-        data = scale ? fields.zero .+ fields.scale.*data : data
-        #=
-        data = if get(kwds, :unit, true)
-            apply_unit(data, cards)
-        end
-        =#
-    else
-        data = nothing
+    data = scale ? fields.zero .+ fields.scale.*data : data
+    #=
+    data = if get(kwds, :unit, true)
+        apply_unit(data, cards)
     end
+    =#
 
     ####    Get WCS keywords
     data
@@ -56,7 +57,7 @@ function verify!(::Type{Conform}, cards::Cards, format::DataFormat,
     cards
 end
 
-function DataFormat(::Type{Conform}, data::Nothing, mankeys::Dict{S, V}) where
+function DataFormat(::Type{Conform}, data::Missing, mankeys::Dict{S, V}) where
     {S<:AbstractString, V<:ValueType}
 
     #  Determine format from data
@@ -101,6 +102,6 @@ end
 function create_data(::Type{Conform}, format::DataFormat, fields::ConformField;
     kwds...)
     #  Create simple N-dimensional array of zeros of type BITPIX
-    length(format.shape) > 0 ? zeros(format.type, format.shape) : nothing
+    length(format.shape) > 0 ? zeros(format.type, format.shape) : missing
 end
 

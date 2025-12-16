@@ -1,40 +1,46 @@
 ####    Primary HDU functions
 
-struct ImageField <: AbstractField
+"""
+    ImageField(type, zero, scale, miss, dmin, dmax)
+
+Image array element descriptor (applicable to Primary and Image HDUs)
+"""
+struct ImageField{R} <: AbstractField where R <: Real
+    "The type of the image"
     type::Type
-    zero::Real
-    scale::Real
+    "The offset of the image"
+    zero::R
+    "The scale of the image"
+    scale::R
+    "The value representing a missing value"
     miss::Union{Integer, Nothing}
-    dmin::Union{AbstractFloat, Nothing}
-    dmax::Union{AbstractFloat, Nothing}
+    "The minimum display value of the image"
+    dmin::Union{R, Nothing}
+    "The maximum display value of the image"
+    dmax::Union{R, Nothing}
 end
 
 function Base.read(io::IO, ::Type{Primary}, format::DataFormat,
-    fields::ImageField; scale=true, kwds...)
+    fields::ImageField; scale::Bool = true, kwds...)
 
-    begpos = position(io)
     #  Read data array
     M, N = sizeof(format.type), format.leng
-    if N > 0
-        data = read(io, format, fields)
-        #  Seek to end of the last data block
-        seek(io, begpos + BLOCKLEN*div(M*N, BLOCKLEN, RoundUp))
+    data = read(io, format, fields)
+    #  Seek to end of the last data block
+    # seek(io, position(io) + BLOCKLEN*div(M*N, BLOCKLEN, RoundUp))
 
-        data = scale ? fields.zero .+ fields.scale.*data : data
-        #=
-        if get(kwds, :unit, true)
-            data = apply_unit(data, fields)
-        end
-        =#
-    else
-        data = nothing
+    data = scale ? fields.zero .+ fields.scale.*data : data
+    #=
+    if get(kwds, :unit, true)
+        data = apply_unit(data, fields)
     end
+    =#
 
     ####    Get WCS keywords
     data
 end
 
-function Base.write(io::IO, ::Type{Primary}, data::Nothing, format::DataFormat,
+function Base.write(io::IO, ::Type{Primary}, data::Missing, format::DataFormat,
     fields::ImageField; kwds...)
 end
 
@@ -68,7 +74,7 @@ function verify!(::Type{Primary}, cards::Cards, format::DataFormat,
     cards
 end
 
-function DataFormat(::Type{Primary}, data::Nothing, mankeys::Dict{S, V}) where
+function DataFormat(::Type{Primary}, data::Missing, mankeys::Dict{S, V}) where
     {S<:AbstractString, V<:ValueType}
 
     #  Determine format from data
@@ -82,7 +88,7 @@ function DataFormat(::Type{Primary}, data::Nothing, mankeys::Dict{S, V}) where
 end
 
 function FieldFormat(::Type{Primary}, format::DataFormat, reskeys::Dict{S, V},
-    data::Nothing) where {S<:AbstractString, V<:ValueType}
+    data::Missing) where {S<:AbstractString, V<:ValueType}
 
     #  Get missing value
     zero_ = get(reskeys, "BZERO", zero(format.type))
@@ -144,7 +150,7 @@ end
 function create_data(::Type{Primary}, format::DataFormat, ::ImageField;
     kwds...)
     #  Create simple N-dimensional array of zeros of type BITPIX
-    length(format.shape) > 0 ? zeros(format.type, format.shape) : nothing
+    length(format.shape) > 0 ? zeros(format.type, format.shape) : missing
 end
 
 function Base.read(io::IO, format::DataFormat, fields::ImageField)

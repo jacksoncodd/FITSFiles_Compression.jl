@@ -4,7 +4,7 @@
 
     #  test Primary (default) type
     cards = Card[]
-    data  = nothing
+    data  = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == Primary
 
@@ -46,40 +46,40 @@
 
     #  test Primary (default) type
     cards = Card[]
-    data  = nothing
+    data  = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == Primary
 
     cards = Card[Card("SIMPLE", true), Card("BITPIX", 32), Card("NAXIS", 0)]
-    data = nothing
+    data = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == Primary
 
     #  test Random type
     cards = Card[Card("SIMPLE", true), Card("BITPIX", 32), Card("NAXIS", 2),
                  Card("NAXIS1", 0), Card("NAXIS2", 10), Card("GROUPS", true)]
-    data = nothing
+    data = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == Random
 
     #  test Image type
     cards = Card[Card("XTENSION", "IMAGE   "), Card("BITPIX", 16),
                  Card("NAXIS", 2), Card("NAXIS1", 10), Card("NAXIS2", 10)]
-    data = nothing
+    data = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == Image
 
     #  test Table type
     cards = Card[Card("XTENSION", "TABLE   "), Card("BITPIX", 8),
                  Card("NAXIS", 2), Card("NAXIS1", 10), Card("NAXIS2", 10)]
-    data = nothing
+    data = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == Table
 
     #  test Bintable type
     cards = Card[Card("XTENSION", "BINTABLE"), Card("BITPIX", 8),
                  Card("NAXIS", 2), Card("NAXIS1", 10), Card("NAXIS2", 10)]
-    data = nothing
+    data = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == Bintable
 
@@ -87,7 +87,7 @@
     cards = Card[Card("XTENSION", "BINTABLE"), Card("BITPIX", 8),
                  Card("NAXIS", 2), Card("NAXIS1", 10), Card("NAXIS2", 10),
                  Card("ZIMAGE", true)]
-    data = nothing
+    data = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == ZImage
 
@@ -95,14 +95,14 @@
     cards = Card[Card("XTENSION", "BINTABLE"), Card("BITPIX", 8),
                  Card("NAXIS", 2), Card("NAXIS1", 10), Card("NAXIS2", 10),
                  Card("ZTABLE", true)]
-    data = nothing
+    data = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == ZTable
 
     #  test Conform type
     cards = Card[Card("XTENSION", "CONFORM "), Card("BITPIX", 16),
                  Card("NAXIS", 2), Card("NAXIS1", 10), Card("NAXIS2", 10)]
-    data = nothing
+    data = missing
     mankeys, reskeys = FITSFiles.get_reserved_keys(cards)
     @test FITSFiles.typeofhdu(data, mankeys) == Conform
 
