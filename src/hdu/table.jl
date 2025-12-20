@@ -1,3 +1,10 @@
+#=    Improvements
+
+ * type mappings, e.g., F6.2 to Float32, etc.
+ * more tests
+
+ =#
+
 ####    Table HDU functions
 
 const TABLEFMT = Regex("(?<t>[AIFED])(?<w>\\d+)(\\.(?<f>\\d+))?")
@@ -18,7 +25,7 @@ struct TableField <: AbstractField
     "The type of the field"
     type::Type
     "The slice of the field from start of record"
-    slice::UnitRange{Int64}
+    slice::UnitRange{Integer}
     "The unit of the field"
     unit::String
     "The format of the field"
@@ -26,19 +33,19 @@ struct TableField <: AbstractField
     "The display of the field"
     disp::String
     "The offset of the field"
-    zero::Union{Real, Missing}
+    zero::Union{AbstractFloat, Nothing}
     "The scale of the field"
-    scale::Union{Real, Missing}
+    scale::Union{AbstractFloat, Nothing}
     "The null value of the field"
-    null::Union{String, Missing}
+    null::Union{String, Nothing}
     "The minimum display value of the field"
-    dmin::Union{Real, Missing}
+    dmin::Union{AbstractFloat, Nothing}
     "The maximum display value of the field"
-    dmax::Union{Real, Missing}
+    dmax::Union{AbstractFloat, Nothing}
     "The minimum physical value of the field"
-    lmin::Union{Real, Missing}
+    lmin::Union{AbstractFloat, Nothing}
     "The maximum physical value of the field"
-    lmax::Union{Real, Missing}
+    lmax::Union{AbstractFloat, Nothing}
 end
 
 function Base.read(io::IO, type::Type{Table}, format::DataFormat,
@@ -143,13 +150,17 @@ function FieldFormat(::Type{Table}, format::DataFormat, reskeys::Dict{S, V},
         unit  = get(reskeys, "TUNIT$j", "")
         form  = fmt.match
         disp  = get(reskeys, "TDISP$j", "")
-        tzero = get(reskeys, "TZERO$j", type <: String ? missing : type(0))
-        tscal = get(reskeys, "TSCAL$j", type <: String ? missing : type(1))
-        null  = get(reskeys, "TNULL$j", missing)
-        dmin  = parse_string(get(reskeys, "TDMIN$j", missing))
-        dmax  = parse_string(get(reskeys, "TDMAX$j", missing))
-        lmin  = parse_string(get(reskeys, "TLMIN$j", missing))
-        lmax  = parse_string(get(reskeys, "TLMAX$j", missing))
+        tzero = get(reskeys, "TZERO$j", type <: String ? nothing : 0.0f0)
+        tscal = get(reskeys, "TSCAL$j", type <: String ? nothing : 1.0f0)
+        null  = get(reskeys, "TNULL$j", nothing)
+        dmin  = parse_string(get(reskeys, "TDMIN$j", nothing))
+        dmin  = dmin !== nothing ? float(dmin) : dmin
+        dmax  = parse_string(get(reskeys, "TDMAX$j", nothing))
+        dmax  = dmax !== nothing ? float(dmax) : dmax
+        lmin  = parse_string(get(reskeys, "TLMIN$j", nothing))
+        lmin  = lmin !== nothing ? float(lmin) : lmin
+        lmax  = parse_string(get(reskeys, "TLMAX$j", nothing))
+        lmax  = lmax !== nothing ? float(lmax) : lmax
 
         fields[j] = TableField(name, type, k:k+leng-1, unit, form, disp,
             tzero, tscal, null, dmin, dmax, lmin, lmax)
@@ -190,13 +201,17 @@ function FieldFormat(::Type{Table}, format::DataFormat, reskeys::Dict{S, V},
         unit  = get(reskeys, "TUNIT$j", "")
         form  = fmt.match
         disp  = get(reskeys, "TDISP$j", "")
-        tzero = get(reskeys, "TZERO$j", type <: String ? missing : type(0))
-        tscal = get(reskeys, "TSCAL$j", type <: String ? missing : type(1))
-        null  = get(reskeys, "TNULL$j", missing)
-        dmin  = get(reskeys, "TDMIN$j", missing)
-        dmax  = get(reskeys, "TDMAX$j", missing)
-        lmin  = get(reskeys, "TLMIN$j", missing)
-        lmax  = get(reskeys, "TLMAX$j", missing)
+        tzero = get(reskeys, "TZERO$j", type <: String ? nothing : 0.0f0)
+        tscal = get(reskeys, "TSCAL$j", type <: String ? nothing : 1.0f0)
+        null  = get(reskeys, "TNULL$j", nothing)
+        dmin  = get(reskeys, "TDMIN$j", nothing)
+        dmin  = dmin !== nothing ? float(dmin) : dmin
+        dmax  = get(reskeys, "TDMAX$j", nothing)
+        dmax  = dmax !== nothing ? float(dmax) : dmax
+        lmin  = get(reskeys, "TLMIN$j", nothing)
+        lmin  = lmin !== nothing ? float(lmin) : lmin
+        lmax  = get(reskeys, "TLMAX$j", nothing)
+        lmax  = lmax !== nothing ? float(lmax) : lmax
 
         fields[j] = TableField(name, type, k:k+leng, unit, form, disp,
             tzero, tscal, null, dmin, dmax, lmin, lmax)
@@ -237,13 +252,13 @@ function FieldFormat(::Type{Table}, format::DataFormat, reskeys::Dict{S, V},
         unit  = get(reskeys, "TUNIT$j", "")
         form  = fmt.match
         disp  = get(reskeys, "TDISP$j", "")
-        tzero = get(reskeys, "TZERO$j", type <: String ? missing : type(0))
-        tscal = get(reskeys, "TSCAL$j", type <: String ? missing : type(1))
-        null  = get(reskeys, "TNULL$j", missing)
-        dmin  = get(reskeys, "TDMIN$j", missing)
-        dmax  = get(reskeys, "TDMAX$j", missing)
-        lmin  = get(reskeys, "TLMIN$j", missing)
-        lmax  = get(reskeys, "TLMAX$j", missing)
+        tzero = get(reskeys, "TZERO$j", type <: String ? nothing : 0.0f0)
+        tscal = get(reskeys, "TSCAL$j", type <: String ? nothing : 1.0f0)
+        null  = get(reskeys, "TNULL$j", nothing)
+        dmin  = get(reskeys, "TDMIN$j", nothing)
+        dmax  = get(reskeys, "TDMAX$j", nothing)
+        lmin  = get(reskeys, "TLMIN$j", nothing)
+        lmax  = get(reskeys, "TLMAX$j", nothing)
 
         fields[j] = TableField(name, type, k:k+leng, unit, form, disp,
             tzero, tscal, null, dmin, dmax, lmin, lmax)
@@ -309,7 +324,7 @@ function Base.read(io::IO, field::TableField, format::DataFormat,
         for j = 1:N
             seek(io, begpos + L*(j-1) + M)
             item = String(Base.read(io, leng))
-            if (!ismissing(field.null) && field.null == item) ||
+            if (!isnothing(field.null) && field.null == item) ||
                 item == repeat(' ', leng) || leng <= 0
                 column[j] = missing
             else
@@ -328,7 +343,7 @@ function Base.read(row::AbstractString, field::TableField; scale::Bool = true,
     item = row[field.slice]
     if type <: AbstractString
         value = rstrip(item)
-    elseif (!ismissing(field.null) && field.null == item) ||
+    elseif (!isnothing(field.null) && field.null == item) ||
         item == repeat(' ', leng) || leng <= 0
         value = missing
     else
