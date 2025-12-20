@@ -23,38 +23,38 @@ Binary array element descriptor
 """
 struct BinaryField <: AbstractField
     "The name of the field"
-    name::String
+    name::AbstractString
     "The type of variable array pointer "
     pntr::Union{Type, Nothing}
     "The tye of the field"
     type::Type
     "The slice of the field from start of record"
-    slice::UnitRange{Int64}
+    slice::UnitRange{<:Integer}
     "The number of elements in the field"
-    leng::Int64
+    leng::Integer
     "The supplmental information of the field"
-    supp::String
+    supp::AbstractString
     #  optional fields
     "The unit of the field"
-    unit::String
+    unit::AbstractString
     "The display format of the field"
-    disp::String
+    disp::AbstractString
     "The dimension of the field"
     dims::Union{Tuple, Nothing}
     "The offset of the field"
-    zero::Union{Real, Nothing}
+    zero::Union{AbstractFloat, Nothing}
     "The scale of the field"
-    scale::Union{Real, Nothing}
+    scale::Union{AbstractFloat, Nothing}
     "The missing value of the field"
-    null::Union{Int64, Nothing}
+    null::Union{Integer, Nothing}
     "The minimum raw value of the field"
-    dmin::Union{Real, Nothing}
+    dmin::Union{AbstractFloat, Nothing}
     "The maximum raw value of the field"
-    dmax::Union{Real, Nothing}
+    dmax::Union{AbstractFloat, Nothing}
     "The minimum physical value of the field"
-    lmin::Union{Real, Nothing}
+    lmin::Union{AbstractFloat, Nothing}
     "The maximum physical value of the field"
-    lmax::Union{Real, Nothing}
+    lmax::Union{AbstractFloat, Nothing}
 end
 
 function Base.read(io::IO, ::Type{Bintable}, format::DataFormat,
@@ -188,15 +188,19 @@ function FieldFormat(::Type{Bintable}, mankeys::DataFormat, reskeys::Dict{S, V},
         unit_ = get(reskeys, "TUNIT$j", "")
         disp  = get(reskeys, "TDISP$j", "")
         dims  = eval(Meta.parse(get(reskeys, "TDIM$j", "")))
-        zero_ = get(reskeys, "TZERO$j", type <: Union{Bool, BitVector, String} ?
-            nothing : type(0))
-        scale = get(reskeys, "TSCAL$j", type <: Union{Bool, BitVector, String} ?
-            nothing : type(1))
+        zero_ = get(reskeys, "TZERO$j",
+            type <: Union{Bool, BitVector, String} ? nothing : 0.0f0)
+        scale = get(reskeys, "TSCAL$j",
+            type <: Union{Bool, BitVector, String} ? nothing : 1.0f0)
         null  = get(reskeys, "TNULL$j", nothing)
         dmin  = parse_string(get(reskeys, "TDMIN$j", nothing))
+        dmin  = dmin !== nothing ? float(dmin) : dmin
         dmax  = parse_string(get(reskeys, "TDMAX$j", nothing))
+        dmax  = dmax !== nothing ? float(dmax) : dmax
         lmin  = parse_string(get(reskeys, "TLMIN$j", nothing))
+        lmin  = lmin !== nothing ? float(lmin) : lmin
         lmax  = parse_string(get(reskeys, "TLMAX$j", nothing))
+        lmax  = lmax !== nothing ? float(lmax) : lmax
 
         fields[j] = BinaryField(name, pntr, type, k+1:k+byts, leng, supp,
             unit_, disp, dims, zero_, scale, null, dmin, dmax, lmin, lmax)
@@ -235,15 +239,19 @@ function FieldFormat(::Type{Bintable}, mankey::DataFormat, reskeys::Dict{S, V},
         unit_ = get(reskeys, "TUNIT$j", "")
         disp  = get(reskeys, "TDISP$j", "")
         dims  = eval(Meta.parse(get(reskeys, "TDIM$j", "")))
-        zero_ = get(reskeys, "TZERO$j", type <: Union{Bool, BitVector, String} ?
-            nothing : type(0))
-        scale = get(reskeys, "TSCAL$j", type <: Union{Bool, BitVector, String} ?
-            nothing : type(1))
+        zero_ = get(reskeys, "TZERO$j",
+            type <: Union{Bool, BitVector, String} ? nothing : 0.0f0)
+        scale = get(reskeys, "TSCAL$j",
+            type <: Union{Bool, BitVector, String} ? nothing : 1.0f0)
         null  = get(reskeys, "TNULL$j", nothing)
         dmin  = get(reskeys, "TDMIN$j", nothing)
+        dmin  = dmin !== nothing ? float(dmin) : dmin
         dmax  = get(reskeys, "TDMAX$j", nothing)
+        dmax  = dmax !== nothing ? float(dmax) : dmax
         lmin  = get(reskeys, "TLMIN$j", nothing)
+        lmin  = lmin !== nothing ? float(lmin) : lmin
         lmax  = get(reskeys, "TLMAX$j", nothing)
+        lmax  = lmax !== nothing ? float(lmax) : lmax
 
         fields[j] = BinaryField(name, pntr, type, k+1:k+byts, leng, supp,
             unit_, disp, dims, zero_, scale, null, dmin, dmax, lmin, lmax)
@@ -284,15 +292,19 @@ function FieldFormat(::Type{Bintable}, mankey::DataFormat, reskeys::Dict{S, V},
         unit_ = get(reskeys, "TUNIT$j", "")
         disp  = get(reskeys, "TDISP$j", "")
         dims  = eval(Meta.parse(get(reskeys, "TDIM$j", "")))
-        zero_ = get(reskeys, "TZERO$j", type <: Union{Bool, BitVector, String} ?
-            nothing : type(0))
-        scale = get(reskeys, "TSCAL$j", type <: Union{Bool, BitVector, String} ?
-            nothing : type(1))
+        zero_ = get(reskeys, "TZERO$j",
+            type <: Union{Bool, BitVector, String} ? nothing : 0.0f0)
+        scale = get(reskeys, "TSCAL$j",
+            type <: Union{Bool, BitVector, String} ? nothing : 1.0f0)
         null  = get(reskeys, "TNULL$j", nothing)
         dmin  = get(reskeys, "TDMIN$j", nothing)
+        dmin  = dmin !== nothing ? float(dmin) : dmin
         dmax  = get(reskeys, "TDMAX$j", nothing)
+        dmax  = dmax !== nothing ? float(dmax) : dmax
         lmin  = get(reskeys, "TLMIN$j", nothing)
+        lmin  = lmin !== nothing ? float(lmin) : lmin
         lmax  = get(reskeys, "TLMAX$j", nothing)
+        lmax  = lmax !== nothing ? float(lmax) : lmax
 
         fields[j] = BinaryField(name, pntr, type, k+1:k+byts, leng, supp,
             unit_, disp, dims, zero_, scale, null, dmin, dmax, lmin, lmax)

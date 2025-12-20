@@ -5,19 +5,19 @@
 
 Image array element descriptor (applicable to Primary and Image HDUs)
 """
-struct ImageField{R} <: AbstractField where R <: Real
+struct ImageField <: AbstractField
     "The type of the image"
     type::Type
     "The offset of the image"
-    zero::R
+    zero::AbstractFloat
     "The scale of the image"
-    scale::R
+    scale::AbstractFloat
     "The value representing a missing value"
     miss::Union{Integer, Nothing}
     "The minimum display value of the image"
-    dmin::Union{R, Nothing}
+    dmin::Union{AbstractFloat, Nothing}
     "The maximum display value of the image"
-    dmax::Union{R, Nothing}
+    dmax::Union{AbstractFloat, Nothing}
 end
 
 function Base.read(io::IO, ::Type{Primary}, format::DataFormat,
@@ -91,11 +91,13 @@ function FieldFormat(::Type{Primary}, format::DataFormat, reskeys::Dict{S, V},
     data::Missing) where {S<:AbstractString, V<:ValueType}
 
     #  Get missing value
-    zero_ = get(reskeys, "BZERO", zero(format.type))
-    scale = get(reskeys, "BSCALE", one(format.type))
+    zero_ = get(reskeys, "BZERO", 0.0f0)
+    scale = get(reskeys, "BSCALE", 1.0f0)
     miss  = format.type in MISSTYPE ? get(reskeys, "BLANK", nothing) : nothing
     dmin  = get(reskeys, "DATAMIN", nothing)
+    dmin  = dmin !== nothing ? float(dmin) : dmin
     dmax  = get(reskeys, "DATAMAX", nothing)
+    dmax  = dmax !== nothing ? float(dmax) : dmax
     ImageField(format.type, zero_, scale, miss, dmin, dmax)
 end
 
@@ -116,11 +118,13 @@ function FieldFormat(::Type{Primary}, format::DataFormat, reskeys::Dict{S, V},
     data::AbstractArray) where {S<:AbstractString, V<:ValueType}
 
     #  Get missing value
-    zero_ = get(reskeys, "BZERO", zero(format.type))
-    scale = get(reskeys, "BSCALE", one(format.type))
+    zero_ = get(reskeys, "BZERO", 0.0f0)
+    scale = get(reskeys, "BSCALE", 1.0f0)
     miss  = format.type in MISSTYPE ? get(reskeys, "BLANK", nothing) : nothing
     dmin  = get(reskeys, "DATAMIN", nothing)
+    dmin  = dmin !== nothing ? float(dmin) : dmin
     dmax  = get(reskeys, "DATAMAX", nothing)
+    dmax  = dmax !== nothing ? float(dmax) : dmax
     ImageField(format.type, zero_, scale, miss, dmin, dmax)
 end
 

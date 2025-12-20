@@ -1,9 +1,13 @@
-####    Card type    ####
+#=   Improvements
 
-#   add HIERARCH keyword conventions
-#   make 32-bit floats the default instead of 64-bit floats
-#   add parsing of non-stardard formats
-#   add splitting of long strings at spaces
+ * add HIERARCH keyword conventions
+ * make 32-bit floats the default instead of 64-bit floats
+ * add parsing of non-stardard formats
+ * add splitting of long strings at spaces
+
+ =#
+
+####    Card type    ####
 
 const CARDLENGTH::Int = 80
 # const BLANKCARD::String = repeat(" ", CARDLENGTH)
@@ -185,8 +189,10 @@ mutable struct CardFormat
 	cbeg::Int8
 	cend::Int8
 	# frmt::AbstractString
-	function CardFormat(fixed = true, vbeg = 0, vend = 0, amper = 0, slash = 0,
-		ubeg = 0, uend = 0, cbeg = 0, cend = 0)
+	function CardFormat(fixed::Bool = true, vbeg::I = 0, vend::I = 0,
+		amper::I = 0, slash::I = 0, ubeg::I = 0, uend::I = 0, cbeg::I = 0,
+		cend::I = 0) where I<:Integer
+
 		begv = typeof(vbeg) <: Tuple ? Int8.(vbeg) : Int8(vbeg)
 		endv = typeof(vend) <: Tuple ? Int8.(vend) : Int8(vend)
 		new(Bool(fixed), begv, endv, Int8(amper), Int8(slash),
@@ -282,7 +288,7 @@ function Card(key::S = "", value::V = missing, comment::S = ""; fixed::B = true,
 		type = Value{typeof(value)}
 		format = formatcard(type, value, comment; fixed = fixed, append = append,
 			slash = slash, lpad = lpad, rpad = rpad, upad = upad, truncate = truncate)
-	elseif is_valid_key(upkey) && is_long_string(value, comment, slash, lpad,
+	elseif is_valid_key(upkey) && is_long_string(String(value), comment, slash, lpad,
 		rpad, truncate)
 		#  Create a list of cards from from a long string.
 		type = Value{typeof(value)}
@@ -366,8 +372,8 @@ function is_fixed_key(key::AbstractString)
 	key in ["BITPIX", "END", "NAXIS", "SIMPLE"] || !isnothing(match(r"NAXIS\d{1,3}", key))
 end
 
-function is_long_string(value::S, comment::S, slash, lpad, rpad, truncate) where
-S <: AbstractString
+function is_long_string(value::AbstractString, comment::AbstractString,
+	slash::I, lpad::I, rpad::I, truncate::Bool) where I <: Integer
 	#  Test for long value and comment strings. Return true if found, except in the case where
 	#  the comment can be truncated, i.e., truncate == true.
 	length(replace(value, "'" => "''")) > value_length(slash, lpad) ||
@@ -526,18 +532,18 @@ function formatcomment!(comment::S, vend::I, format::F; units = missing,
 	format
 end
 
-function value_length(slash, lpad)
+function value_length(slash::I, lpad::I)::Integer where I <: Integer
 	#  Calculate length of value based comment separator index and padding.
 	#  First 2 is for value indicator. Second 2 is single quotes.
 	((slash-lpad) > CARDLENGTH ? CARDLENGTH : slash-lpad-1) - (TOKENLEN+2)
 end
 
-function comment_length(slash, rpad)
+function comment_length(slash::I, rpad::I)::Integer where I <: Integer
 	#  Calculate length of comment using the comment separator index and padding.
 	(slash+rpad) >= CARDLENGTH ? 0 : CARDLENGTH - (slash+rpad)
 end
 
-rpad_key(key, n = 0) = rpad(key, KEYLENGTH + n)
+rpad_key(key::AbstractString, n::Integer = 0) = rpad(key, KEYLENGTH + n)
 
 function slices(value::S, slen::I, ncard::I, single::B = false) where
 {S <: AbstractString, I <: Integer, B <: Bool}
@@ -554,7 +560,7 @@ function slices(value::S, slen::I, ncard::I, single::B = false) where
 end
 
 #  Format special XTENSION values, pad to 8 characters
-function format_xtension_value(key::S, value::S) where S <: AbstractString
+function format_xtension_value(key::AbstractString, value::AbstractString)
 	(key == "XTENSION" && any(contains(s, uppercase(value)) for s in XTENSION_VALUES)) ?
 	rpad(uppercase(value), 8) : value
 end
@@ -876,7 +882,7 @@ function named_offsets(match::RegexMatch)
 	(; (Symbol.(keys(match)) .=> match.offsets[1:length(keys(match))])...)
 end
 
-function value_type(valus)
+function value_type(valus::RegexMatch)
 	types = (strg = String, bool = Bool, numr = Real, cplx = Complex, miss = Missing)
 	keys  = (:strg, :bool, :numr, :cplx, :miss)
 	basetype([types[k] for k in keys if valus[k] !== nothing][1])
@@ -890,7 +896,9 @@ function parse_value_comment(::Type{Value}, image::AbstractString)
 	(value*units, String(comment), format)
 end
 
-function parse_value(::Type{String}, valus, offsets)::Tuple{String, CardFormat}
+function parse_value(::Type{String}, valus::RegexMatch,
+	offsets::NamedTuple)::Tuple{String, CardFormat}
+
 	format = CardFormat()
 	value = string(valus[:strg])
 	#  vbeg and vend include the the single quotes.
@@ -901,7 +909,9 @@ function parse_value(::Type{String}, valus, offsets)::Tuple{String, CardFormat}
 	(value, format)
 end
 
-function parse_value(::Type{Bool}, valus, offsets)::Tuple{Bool, CardFormat}
+function parse_value(::Type{Bool}, valus::RegexMatch,
+	offsets::NamedTuple)::Tuple{Bool, CardFormat}
+
 	format = CardFormat()
 	value = valus[:bool] == "T" ? true : false
 	format.fixd = offsets[:bool] == FIXEDINDEX ? true : false
@@ -909,7 +919,9 @@ function parse_value(::Type{Bool}, valus, offsets)::Tuple{Bool, CardFormat}
 	(value, format)
 end
 
-function parse_value(::Type{Real}, valus, offsets)::Tuple{Real, CardFormat}
+function parse_value(::Type{Real}, valus::RegexMatch,
+	offsets::NamedTuple)::Tuple{Real, CardFormat}
+
 	format = CardFormat()
 	value = parse_number(valus[:numr])
 	numr, nlen = offsets[:numr], length(valus[:numr])
@@ -919,7 +931,9 @@ function parse_value(::Type{Real}, valus, offsets)::Tuple{Real, CardFormat}
 	(value, format)
 end
 
-function parse_value(::Type{Complex}, valus, offsets)::Tuple{Complex, CardFormat}
+function parse_value(::Type{Complex}, valus::RegexMatch,
+	offsets::NamedTuple)::Tuple{Complex, CardFormat}
+
 	format = CardFormat()
 	value = parse_complex(valus[:real], valus[:imag])
 	real_, imag_ = offsets[:real], offsets[:imag]
@@ -930,7 +944,9 @@ function parse_value(::Type{Complex}, valus, offsets)::Tuple{Complex, CardFormat
 	(value, format)
 end
 
-function parse_value(::Type{Missing}, valus, offsets)::Tuple{Missing, CardFormat}
+function parse_value(::Type{Missing}, valus::RegexMatch,
+	offsets::NamedTuple)::Tuple{Missing, CardFormat}
+
 	format = CardFormat()
 	(missing, format)
 end
@@ -1025,7 +1041,7 @@ function parse_number(real::AbstractString)
 	value
 end
 
-function overflow(real)
+function overflow(real::AbstractString)
 	#  test for overflow or precision
 	n = findlast('E', real)
 	abs(Base.parse(Int, real[(n+1):end])) >= 39 || n >= 14

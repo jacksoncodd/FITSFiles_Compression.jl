@@ -1,3 +1,9 @@
+#=   Improvements
+
+ * tighten function argument types
+
+ =#
+
 ####    HDU type    ####
 
 abstract type AbstractHDU end
@@ -97,16 +103,22 @@ struct HDU{S <: AbstractHDU}
 	data::Union{AbstractArray, LazyArray, Tuple, NamedTuple, Missing}
 end
 
-const BLOCKLEN  = 2880
-const BYTELEN   = 8
+const BLOCKLEN    = 2880
+const BYTELEN     = 8
+const INFONAMELEN = 24
+const INFOVERSLEN = 3
+const INFOTYPELEN = 8
+const INFOCARDLEN = 6
+const INFOLTYPLEN = 8
+
 const BITS2TYPE = Dict(8 => UInt8, 16 => Int16, 32 => Int32, 64 => Int64,
--32 => Float32, -64 => Float64)
+	-32 => Float32, -64 => Float64)
 const TYPE2BITS = Dict(UInt8 => 8, Int16 => 16, Int32 => 32, Int64 => 64,
-Float32 => -32, Float64 => -64)
+	Float32 => -32, Float64 => -64)
 
 const MISSTYPE = (UInt8, Int16, Int32, Int64)
 const TEMPTYPE = Dict(-2^7 => Int16, 2^15 => UInt32, UInt32(2)^31 => UInt64,
-UInt64(2)^63 => UInt128)
+	UInt64(2)^63 => UInt128)
 const OUTTYPE  = Dict(
     UInt8 => Float32, Int16 => Float32, Int32 => Float64, Int64 => Float64,
     Float32 => Float32, Float64 => Float64)
@@ -254,51 +266,31 @@ end
 
 Briefly describe the header-data unit.
 """
-function info(hdu::HDU)
+function info(hdu::HDU, n::Integer = 0)
 	cards = getfield(hdu, :cards)
 	N = cards["NAXIS"]
-	typ = rpad(typeofhdu(hdu), 8)
-	crd = lpad(length(cards), 6)
+	typ = rpad(typeofhdu(hdu), INFOTYPELEN)
+	nam = rpad(haskey(cards, "EXTNAME") ? cards["EXTNAME"] : "", INFONAMELEN)
+	ver = lpad(haskey(cards, "EXTVERS") ? cards["EXTVER"] : "1", INFOVERSLEN)
+	crd = lpad(length(cards), INFOCARDLEN)
 	siz = join([string(cards["NAXIS$j"])
 				for j ∈ (typeofhdu(hdu)==Random ? 2 : 1):N], " × ")
-	eltype = lpad(datatype(cards), 8)
-	print(stdout, "$typ  $crd  $eltype   $siz\n")
+	eltype = lpad(datatype(cards), INFOTYPELEN)
+	print(stdout, "$(n == 0 ? "   " : lpad(n, 3))   $typ  $nam  $ver  $crd  $eltype   $siz\n")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", hdu::HDU)
 	cards = getfield(hdu, :cards)
 	N = cards["NAXIS"]
-	typ = rpad(typeofhdu(hdu), 8)
-	crd = lpad(length(cards), 6)
+	typ = rpad(typeofhdu(hdu), INFOTYPELEN)
+	nam = rpad(haskey(cards, "EXTNAME") ? cards["EXTNAME"] : "", INFONAMELEN)
+	ver = lpad(haskey(cards, "EXTVERS") ? cards["EXTVER"] : "1", INFOVERSLEN)
+	crd = lpad(length(cards), INFOCARDLEN)
 	siz = join([string(cards["NAXIS$j"])
 				for j ∈ (typeofhdu(hdu)==Random ? 2 : 1):N], " × ")
-	eltype = lpad(datatype(cards), 8)
-	print(io, "$typ  $crd  $eltype   $siz")
+	eltype = lpad(datatype(cards), INFOTYPELEN)
+	print(io, "      $typ  $nam  $ver  $crd  $eltype   $siz")
 end
-
-function Base.show(io::IO, ::MIME"text/plain", hdus::AbstractVector{HDU})
-	for (j, hdu) in enumerate(hdus)
-		cards = getfield(hdu, :cards)
-		N = cards["NAXIS"]
-		typ = rpad(typeofhdu(hdu), 8)
-		crd = lpad(length(cards), 6)
-		siz = join([string(cards["NAXIS$j"])
-				for j ∈ (typeofhdu(hdu)==Random ? 2 : 1):N], " × ")
-		eltype = lpad(datatype(cards), 8)
-		print(io, "$typ  $crd  $eltype   $siz")
-		if j != length(hdus)
-			print(io, "\n")
-		end
-	end
-end
-
-#=
-function Base.show(io::IO, hdu::HDU)
-	show(io, getfield(hdu, :cards))
-	print(io, "\n")
-	show(io, getfield(hdu, :data))
-end
-=#
 
 function Base.getproperty(hdu::HDU, name::Symbol)
 	if name === :data && getfield(hdu, :data) isa LazyArray
@@ -319,7 +311,7 @@ end
 
 Read the specified HDU type from a file.
 """
-function Base.read(io::IO, ::Type{HDU}; type=nothing, kwds...)::HDU
+function Base.read(io::IO, ::Type{HDU}; type = nothing, kwds...)::HDU
     #  Read cards
     cards, mankeys, reskeys = read(io, Card)
 
@@ -438,7 +430,7 @@ Determine the HDU type based on the data structure, the mandatory keywords, or
 both.
 """
 function typeofhdu(data::U) where
-U <: Union{AbstractArray, Tuple, NamedTuple, Missing}
+	U <: Union{AbstractArray, Tuple, NamedTuple, Missing}
 
 	if !ismissing(data)
 		if eltype(data) <: Real
@@ -607,7 +599,7 @@ function parse_wcs(cards::Cards)
 end
 =#
 
-####    Dictionary-like key functions for Cards
+####    Dictionary key behaviour functions for Cards
 
 function Base.haskey(cards::Cards, key::AbstractString)
 	for card in cards
@@ -627,7 +619,7 @@ function Base.getindex(cards::Cards, key::AbstractString)
 	throw(KeyError(key))
 end
 
-function Base.get(cards::Cards, key::AbstractString, default = missing)
+function Base.get(cards::Cards, key::AbstractString, default = nothing)
 	value = default
 	for card in cards
 		if uppercase(card.key) == uppercase(key)
@@ -680,21 +672,11 @@ function Base.popat!(cards::Cards, key::AbstractString, default=Card())
     card
 end
 
-#=
-function Base.get(cards::Cards, key::T, default; find=:first) where T<:AbstractString
-    value = find == :all ? [] : nothing
-    for card in cards
-        if card.key == uppercase(key)
-            if find in [:all, :full]
-                push!(value, card.value)
-            else
-            value = card.value; break
-            elseif find == :all
-                push!(value, card.value)
-            elseif find == :full
-            end
-        end
-    end
-    isnothing(value) || isempty(value) ? default : value
+####   Dictionary key behaviour functions for NameTuples
+
+Base.haskey(data::NamedTuple, key::AbstractString) = haskey(data, Symbol(key))
+Base.getindex(data::NamedTuple, key::AbstractString) = data[Symbol(key)]
+
+function Base.get(data::NamedTuple, key::AbstractString, default = nothing)
+	get(data, Symbol(key), nothing)
 end
-=#
