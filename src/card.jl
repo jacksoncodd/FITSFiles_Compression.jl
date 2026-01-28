@@ -826,11 +826,11 @@ end
 #  orphaned CONTINUE cards become COMMENT cards.
 
 """
-	parse(Card, image)
+    Base.parse(::Type{Card}, image::AbstractString)
 
 Parse 80 character card image from string buffer.
 """
-function parse(::Type{Card}, image::AbstractString)
+function Base.parse(::Type{Card}, image::AbstractString)
 	#
 	#  !!! Currently, checks are for 'strict' standard
 	#
@@ -1024,18 +1024,18 @@ end
 
 function parse_number(real::AbstractString)
 	if occursin('D', real) || (occursin('E', real) && overflow(real))
-		value = Base.parse(Float64, replace(real, "E" => "e", "D" => "e"))
+		value = parse(Float64, replace(real, "E" => "e", "D" => "e"))
 	elseif occursin("E", real)
-		value = Base.parse(Float32, replace(real, "E" => "e"))
+		value = parse(Float32, replace(real, "E" => "e"))
 	elseif occursin(r"\.0*[1-9]+", real) && length(split(real, ".")[2]) >= 10
-		value = Base.parse(Float64, real)
+		value = parse(Float64, real)
 	elseif occursin(".", real)
-		value = Base.parse(Float32, real)
+		value = parse(Float32, real)
 	else
 		value = try
-			Base.parse(Int64, real)
+			parse(Int64, real)
 		catch _
-			Base.parse(Int128, real)
+			parse(Int128, real)
 		end
 	end
 	value
@@ -1044,23 +1044,23 @@ end
 function overflow(real::AbstractString)
 	#  test for overflow or precision
 	n = findlast('E', real)
-	abs(Base.parse(Int, real[(n+1):end])) >= 39 || n >= 14
+	abs(parse(Int, real[(n+1):end])) >= 39 || n >= 14
 end
 
 function parse_complex(real::S, imag::S) where S <: AbstractString
 	if occursin("D", real) || occursin("D", imag)
 		real_, imag_ = replace(real, "D" => "e"), replace(imag, "D" => "e")
-		value = Base.parse(ComplexF64, "$(real_) + $(imag_)im")
+		value = parse(ComplexF64, "$(real_) + $(imag_)im")
 	elseif occursin("E", real) || occursin("E", imag)
 		real_, imag_ = replace(real, "E" => "f"), replace(imag, "E" => "f")
-		value = Base.parse(ComplexF32, "$(real) + $(imag)im")
+		value = parse(ComplexF32, "$(real) + $(imag)im")
 	elseif occursin(".", real) || occursin(".", imag)
-		value = Base.parse(ComplexF64, "$(real) + $(imag)im")
+		value = parse(ComplexF64, "$(real) + $(imag)im")
 	else
 		value = try
-			Base.parse(Complex{Int64}, "$(real) + $(imag)im")
+			parse(Complex{Int64}, "$(real) + $(imag)im")
 		catch _
-			Base.parse(Complex{Int128}, "$(real) + $(imag)im")
+			parse(Complex{Int128}, "$(real) + $(imag)im")
 		end
 	end
 	value
