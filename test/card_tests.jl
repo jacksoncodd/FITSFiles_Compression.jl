@@ -887,17 +887,17 @@
     =#
     
     #  create HIERARCH keyword and value with comment
-    @test isequal(showfields(Card("HIERARCH", "abc def gh ijklmn", -99.9, "[m] abcdef ghijklm nopqrstu vw xyzab")),
-                  ("ABC DEF GH IJKLMN", -99.9, "[m] abcdef ghijklm nopqrstu vw xyzab",
-                   "HIERARCH ABC DEF GH IJKLMN = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab       "))
+    @test isequal(showfields(Card("HIERARCH", "abc def gh ijklmn_-", -99.9, "[m] abcdef ghijklm nopqrstu vw xyzab")),
+                  ("ABC DEF GH IJKLMN_-", -99.9, "[m] abcdef ghijklm nopqrstu vw xyzab",
+                   "HIERARCH ABC DEF GH IJKLMN_- = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab     "))
     
     #  parse HIERARCH keyword and value with comment
-    #=
+    
     @test isequal(showfields(parse(Card,
-                   "HIERARCH ABC DEF GH IJKLMN = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab       ")),
-                  ("ABC DEF GH IJKLMN", -99.9, "[m] abcdef ghijklm nopqrstu vw xyzab",
-                   "HIERARCH ABC DEF GH IJKLMN = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab       "))
-    =#
+                   "HIERARCH ABC DEF GH IJKLM_- = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab      ")),
+                  ("ABC DEF GH IJKLM_-", -99.9f0, "[m] abcdef ghijklm nopqrstu vw xyzab",
+                   "HIERARCH ABC DEF GH IJKLM_- = -99.9 / [m] abcdef ghijklm nopqrstu vw xyzab      "))
+    
     
     #  test HIERARCH Card with abbreviated value indicator.
 
