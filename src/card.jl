@@ -108,7 +108,7 @@ const VALUE_FSC_2 = Regex(
 
 const HIERARCH_FSC = Regex(
 	"^ *" *
-	"(?<key>[A-Z0-9 ]*?)" *
+	"(?<key>[A-Z0-9 _-]*?)" *
 	" *(?<equal>=) *" *
 	"(?:" *
 	"(?<strg>'(?:[ -~]|''|)*?')(?=\$|/| )|" *
